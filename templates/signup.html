@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}
+    My Box Signup Page
+{% endblock %}
+
+{% block content %}
+    <div class="card login-card">
+            <div class="card-body">
+
+                <h2 class="text-center">My Box</h2>
+
+                <h5 class="text-center mt-4">Create new account</h5>
+
+
+
+                <form method="post" action="/handle_signup">
+
+                    {% if error != '' %}
+                    <div class="alert alert-danger mt-5" role="alert">
+                        {{error}}
+                    </div>
+                    {% endif %}
+
+                    <div class="form-group mt-5 row justify-content-md-center">
+                        <label class="col-sm-9 row justify-content-md-center for="email">Email address</label>
+                        <input type="email" class="form-control col-sm-4" id="email" name="email" aria-describedby="emailHelp">
+                    </div>
+                    <div class="form-group mt-4 row justify-content-md-center">
+                        <label class="col-sm-9 row justify-content-md-center" for="password">Password</label>
+                        <input type="password" class="form-control col-sm-4" id="password" name="password">
+                    </div>
+                    <div class="form-group mt-4 row justify-content-md-center">
+                        <label class="col-sm-9 row justify-content-md-center" for="passwordconfirm">Confirm Password</label>
+                        <input type="password" class="form-control col-sm-4" id="passwordconfirm" name="passwordconfirm">
+                    </div>
+
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-primary mt-4">Sign up</button>
+                    </div>
+
+                </form>
+
+                <div class="mt-5 text-center">
+                    Already have an account? <a href="/login">Log in</a>
+                </div>
+
+            </div>
+        </div>
+{% endblock %}
+
+
+
