@@ -1,8 +1,10 @@
+import pymongo
 from flask import Flask, abort, render_template, request, redirect, session
 from flask_pymongo import PyMongo
 from hashlib import sha256
 from cfg import config
 from datetime import datetime
+from utils import get_random_string
 
 app = Flask(__name__)
 app.config["MONGO_URI"] = config["mongo_uri"]
@@ -13,9 +15,36 @@ app.secret_key = b'_5#y2Lj/.,yrhj4hy56'
 @app.route('/')
 def show_index():
     if not 'user_token' in session:
+        session["error"] = "You must first login"
         return redirect('/login')
 
-    return "This is home page"
+    # Validate user token
+    token_document = mongo.db.user_tokens.find_one({
+        "sessionHash": session["user_token"]
+    })
+
+    if token_document is None:
+        session.pop('user_token', None)
+        session["error"] = "You must first login"
+        return redirect('/login')
+
+    userId = token_document["userId"]
+
+    user = mongo.db.users.find_one({
+        '_id': userId
+    })
+
+    uploaded_files = mongo.db.files.find({
+        "userId": userId,
+        "isActive": True
+        }).sort([("createdAt", pymongo.DESCENDING)])
+
+    for f in uploaded_files:
+        print(f)
+
+    return render_template('files.html',
+                           uploaded_files=uploaded_files,
+                           user=user)
 
 
 @app.route('/login')
@@ -65,9 +94,20 @@ def check_login():
 
     password_hash = sha256(password.encode('utf-8')).hexdigest()
 
+    # Verify that password hash matches with original
     if user_document['password'] != password_hash:
         session['error'] = "Password is incorrect!"
         return redirect('/login')
+
+    # Generate token and save it in session
+    random_string = get_random_string()
+    random_session_hash = sha256(random_string.encode('utf-8')).hexdigest()
+    token_object = mongo.db.user_tokens.insert_one({
+            "userId": user_document["_id"],
+            "sessionHash": random_session_hash,
+            "createdAt": '',
+            })
+    session["user_token"] = random_session_hash
 
     return redirect('/')
 
@@ -99,7 +139,7 @@ def handle_signup():
 
     matching_user_count = mongo.db.users.count_documents({"email": email})
     if matching_user_count > 0:
-        session["error"] = "Email already exists!"
+        session["error"] = "Account with this email address already exists!"
         return redirect('/signup')
 
     password = sha256(password.encode('utf-8')).hexdigest()
@@ -117,6 +157,14 @@ def handle_signup():
     # If successfully created account, redirect to login page
     session['signup_success'] = "Account created! You can login now"
     return redirect('/login')
+
+@app.route('/logout')
+def logout_user():
+    session.pop("user_token", None)
+    session['signup_success'] = "You are now logged out"
+    session.pop('signup_success', None)
+    return redirect('/login')
+
 
 
 
