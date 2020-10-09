@@ -10,13 +10,18 @@
     </div>
 
     <div class = "content">
+        {% if error != '' %}
+                    <div class="alert alert-danger mt-5" role="alert">
+                        {{error}}
+                    </div>
+        {% endif %}
         <div class = "row mt-4">
             <div class="col">
                 <h6>Uploaded Files</h6>
             </div>
 
             <div class = "col text-right">
-                <button type = "button" class="btn btn-primary">
+                <button type = "button" class="btn btn-outline-dark" data-toggle="modal" data-target="#uploadModal">
                     Upload
                 </button>
             </div>
@@ -27,32 +32,33 @@
                 <tr>
                     <th scope="col" style="width: 40%">File Name</th>
                     <th scope="col" style="width: 20%">Size</th>
-                    <th scope="col" style="width: 20%">Uploaded</th>
-                    <th scope="col" style="width: 20%">&nbsp</th>
+                    <th scope="col" style="width: 27%">Uploaded</th>
+                    <th scope="col" >&nbsp</th>
                 </tr>
             </thead>
             <tbody>
+            {% for files in uploaded_files %}
                 <tr>
-                    <th scope="row">1</th>
-                    <td>Mark</td>
-                    <td>Otto</td>
-                    <td>@mdo</td>
+                    <td>
+                        {{ files["originalFileName"] }}
+                    </td>
+                    <td>
+                        {{ files["fileSize"] }}
+                    </td>
+                    <td>
+                        {{ files["createdAt"] }}
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-primary btn-sm text-right">Share</button>
+                        <button type="button" class="btn btn-danger btn-sm text-right">Delete</button>
+                    </td>
                 </tr>
-                <tr>
-                    <th scope="row">2</th>
-                    <td>Jacob</td>
-                    <td>Thornton</td>
-                    <td>@fat</td>
-                </tr>
-                <tr>
-                    <th scope="row">3</th>
-                    <td>Larry</td>
-                    <td>the Bird</td>
-                    <td>@twitter</td>
-                </tr>
+            {% endfor %}
             </tbody>
         </table>
     </div>
+
+    {% include 'partials/modal.html' %}
 {% endblock %}
 
 

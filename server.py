@@ -1,5 +1,5 @@
 import pymongo
-from flask import Flask, abort, render_template, request, redirect, session
+from flask import Flask, abort, render_template, request, redirect, session, flash
 from flask_pymongo import PyMongo
 from hashlib import sha256
 from cfg import config
@@ -28,6 +28,11 @@ def show_index():
         session["error"] = "You must first login"
         return redirect('/login')
 
+    error = ''
+    if 'error' in session:
+        error = session['error']
+        session.pop('error', None)
+
     userId = token_document["userId"]
 
     user = mongo.db.users.find_one({
@@ -39,12 +44,10 @@ def show_index():
         "isActive": True
         }).sort([("createdAt", pymongo.DESCENDING)])
 
-    for f in uploaded_files:
-        print(f)
-
     return render_template('files.html',
                            uploaded_files=uploaded_files,
-                           user=user)
+                           user=user,
+                           error=error)
 
 
 @app.route('/login')
@@ -164,6 +167,32 @@ def logout_user():
     session['signup_success'] = "You are now logged out"
     session.pop('signup_success', None)
     return redirect('/login')
+
+ALLOWED_EXTENSIONS = {"jpg", "gif", "png", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "pdf", "csv", "txt"}
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.route('/handle_file_upload', methods=['POST'])
+def handle_upload():
+    if 'UploadedFile' not in request.files:
+        session['error'] = "File not uploaded"
+        return redirect('/')
+
+    file = request.files["UploadedFile"]
+
+    if file.filename == '':
+        session['error'] = "No file selected. Please select a file to upload."
+        return redirect('/')
+
+    if not allowed_file(file.filename):
+        session["error"] = '.' + file.filename.rsplit('.', 1)[1] + " file format is not supported.  Please upload file with different format."
+        return redirect('/')
+
+    return "File Upload yet to be handled"
+
+
 
 
 
