@@ -1,13 +1,16 @@
 import pymongo
 from flask import Flask, abort, render_template, request, redirect, session, flash
+from werkzeug.utils import secure_filename
 from flask_pymongo import PyMongo
 from hashlib import sha256
 from cfg import config
 from datetime import datetime
 from utils import get_random_string
+import os
 
 app = Flask(__name__)
 app.config["MONGO_URI"] = config["mongo_uri"]
+app.config['UPLOAD_FOLDER'] = './Uploaded'
 mongo = PyMongo(app)
 app.secret_key = b'_5#y2Lj/.,yrhj4hy56'
 
@@ -176,6 +179,21 @@ def allowed_file(filename):
 
 @app.route('/handle_file_upload', methods=['POST'])
 def handle_upload():
+    # validate user token first
+    if not 'user_token' in session:
+        session["error"] = "You must first login"
+        return redirect('/login')
+
+    # Validate user token
+    token_document = mongo.db.user_tokens.find_one({
+        "sessionHash": session["user_token"]
+    })
+
+    if token_document is None:
+        session.pop('user_token', None)
+        session["error"] = "You must first login"
+        return redirect('/login')
+
     if 'UploadedFile' not in request.files:
         session['error'] = "File not uploaded"
         return redirect('/')
@@ -190,7 +208,26 @@ def handle_upload():
         session["error"] = '.' + file.filename.rsplit('.', 1)[1] + " file format is not supported.  Please upload file with different format."
         return redirect('/')
 
-    return "File Upload yet to be handled"
+    # check file size
+
+    extension = file.filename.rsplit('.', 1)[1].lower()
+    filename = secure_filename(file.filename)
+    filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+
+    result = mongo.db.files.insert_one({
+            "userId": token_document["userId"],
+            "originalFileName": file.filename,
+            "fileType": extension,
+            "fileSize": 0,
+            "fileHash": '',
+            "filePath": filepath,
+            "isActive": True,
+            "createdAt": datetime.utcnow(),
+            "updatedAt": datetime.utcnow()
+        })
+
+    return redirect('/')
 
 
 
